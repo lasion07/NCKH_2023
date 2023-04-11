@@ -1,0 +1,6 @@
+# ignore ALL .pt files
+*.pt
+
+# ignore ALL files in ANY directory named data
+data/
+logs/
