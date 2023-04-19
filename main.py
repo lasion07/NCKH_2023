@@ -14,6 +14,8 @@ from ultralytics import YOLO
 ap = argparse.ArgumentParser()
 ap.add_argument("--source", required = True,
 	help = "Path to the source to be used")
+ap.add_argument("--model", type=str, default='yolov8m-nckh2023.pt',
+	help = "Model")
 ap.add_argument("--conf", type=float, default=0.5,
 help = "Confidence score")
 ap.add_argument("--iou", type=float, default=0.5,
@@ -24,7 +26,7 @@ ap.add_argument("--fontscale", type=float, default=1,
 help = "Font size")
 args = vars(ap.parse_args())
 
-model = YOLO("models/yolov8m-nckh2023.pt") # Select YOLO model
+model = YOLO(f"models/{args['model']}") # Select YOLO model
 recognizer = LicensePlateRecognizer()
 src = str(args["source"]) # Path
 
@@ -41,10 +43,13 @@ f = open(f"logs/{log_start_time}/log_{log_start_time}.json", mode='a')
 webcame = src.isnumeric()
 
 if webcame:
-    cap = cv.VideoCapture(int(src))
+    cap = cv.VideoCapture(int(src), cv.CAP_GSTREAMER)
 else:
-    cap = cv.VideoCapture(src)
+    cap = cv.VideoCapture(src, cv.CAP_GSTREAMER)
 
+if not cap.isOpened():
+    print("Cannot open camera")
+    quit()
 
 # Predictor configs  
 conf = args['conf']
@@ -194,7 +199,7 @@ while True:
     # Display the resulting frame
     cv.imshow('frame', frame)
     cv.imwrite('data/frame_12.jpg', frame)
-    if cv.waitKey(0) == ord('q'):
+    if cv.waitKey(20) == ord('q'):
         break
 
 # When everything done, release the capture

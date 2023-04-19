@@ -12,7 +12,7 @@ ALPHA_DICT = {0: 'A', 1: 'B', 2: 'C', 3: 'D', 4: 'E', 5: 'F', 6: 'G', 7: 'H', 8:
               13: 'R', 14: 'S', 15: 'T', 16: 'U', 17: 'V', 18: 'X', 19: 'Y', 20: 'Z', 21: '0', 22: '1', 23: '2', 24: '3',
               25: '4', 26: '5', 27: '6', 28: '7', 29: '8', 30: '9', 31: "Background"}
 
-CHAR_CLASSIFICATION_WEIGHTS = '../src/weights/weight.h5'
+CHAR_CLASSIFICATION_WEIGHTS = 'weights/weight.h5'
 
 class LicensePlateRecognizer(object):
     def __init__(self):
