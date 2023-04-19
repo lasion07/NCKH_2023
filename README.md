@@ -16,8 +16,8 @@ python main.py --source 'path_to_data'
 ```
 
 ## Models
-
+<br> Mô hình nhận diện vật thể
 | Model            | size<br><sup>(pixels) | mAP<sup>val<br>50 | mAP<sup>val<br>50-95 | params<br><sup>(M) | FLOPs<br><sup>(B) |
 | ---------------- | --------------------- | ----------------- | -------------------- | ------------------ | ----------------- |
-| YOLOv8n-nckh2023 | 640                   | ~95%              | 59%                | 3.2                | 8.7               |
-| YOLOv8n-nckh2023 | 640                   | ~97%              | 65,9%                | 25.9               | 78.9              |
+| YOLOv8n (nckh2023) | 640                   | ~95%              | 59%                | 3.2                | 8.7               |
+| YOLOv8m (nckh2023) | 640                   | ~97%              | 65,9%                | 25.9               | 78.9              |
