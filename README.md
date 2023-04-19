@@ -5,12 +5,15 @@ Phương pháp được sử dụng: <br>
 * Nhận diện vật thể (YOLOv8)
 * Nhận dạng biển số xe (CNN)
 
-## Install environments
+## Install
 ```
 pip install -r requirements.txt
 ```
 
-## Quick start
+## Usage
 ```
 python main.py --source 'path_to_data' 
 ```
+
+## Models
+
