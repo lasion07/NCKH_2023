@@ -1,6 +1,6 @@
 # NCKH_2023 - NGHIÊN CỨU TÌM HIỂU HỆ THỐNG PHÁT HIỆN HÀNH VI KHÔNG ĐỘI MŨ BẢO HIỂM KHI THAM GIA GIAO THÔNG ỨNG DỤNG TRÍ TUỆ NHÂN TẠO
 
-Phương pháp được sử dụng: <br>
+<br> Phương pháp được sử dụng: </br>
 
 * Nhận diện vật thể (YOLOv8)
 * Nhận dạng biển số xe (CNN)
@@ -16,7 +16,7 @@ python main.py --source 'path_to_data'
 ```
 
 ## Models
-<br> Mô hình nhận diện vật thể
+<br> Mô hình nhận diện vật thể </br>
 | Model            | size<br><sup>(pixels) | mAP<sup>val<br>50 | mAP<sup>val<br>50-95 | params<br><sup>(M) | FLOPs<br><sup>(B) |
 | ---------------- | --------------------- | ----------------- | -------------------- | ------------------ | ----------------- |
 | YOLOv8n (nckh2023) | 640                   | ~95%              | 59%                | 3.2                | 8.7               |
