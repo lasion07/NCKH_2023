@@ -9,6 +9,7 @@
 ```
 pip install -r requirements.txt
 ```
+Tải mô hình nhận diện vật thể đặt trong folder "Models"
 
 ## Usage
 ```
