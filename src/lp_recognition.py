@@ -32,7 +32,7 @@ class LicensePlateRecognizer(object):
         # # crop number plate used by bird's eyes view transformation
         # image = perspective.four_point_transform(self.image, pts)
         
-        # cv2.imwrite('image.jpg', image)
+        # cv2.imwrite('Result', image)
         
         # segmentation
         self.segmentation(image)
