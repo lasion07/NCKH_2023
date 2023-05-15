@@ -1,7 +1,6 @@
 # ignore ALL .pt files
 *.pt
 cv.py
-lp_detection.py
 
 # ignore ALL files in ANY directory named data
 data/

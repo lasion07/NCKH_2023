@@ -16,37 +16,34 @@ CHAR_CLASSIFICATION_WEIGHTS = 'weights/weight.h5'
 
 class LicensePlateRecognizer(object):
     def __init__(self):
-        self.image = np.empty((28, 28, 1))
         self.recogChar = CNN_Model(trainable=False).model
         self.recogChar.load_weights(CHAR_CLASSIFICATION_WEIGHTS)
-        self.candidates = []
 
 
     def predict(self, image):
-        # Input image or frame
-        self.image = image
-        
-        # # convert (x_top, y_left, width, height) to coordinate(top left, top right, bottom left, bottom right)
-        # pts = order_points([0, 0, len(image[0]), len(image)])
+        # convert (x_top, y_left, width, height) to coordinate(top left, top right, bottom left, bottom right)
+        # pts = order_points([10, 10, len(image[0]) - 10, len(image) - 10])
 
-        # # crop number plate used by bird's eyes view transformation
-        # image = perspective.four_point_transform(self.image, pts)
+        # crop number plate used by bird's eyes view transformation
+        # image = perspective.four_point_transform(image, pts)
         
-        # cv2.imwrite('Result', image)
+        resized_image = cv2.resize(image, (90, 80))
+
+        # cv2.imwrite('result.jpg', resized_image)
         
         # segmentation
-        self.segmentation(image)
+        candidates = self.segmentation(resized_image)
 
         # recognize characters
-        self.recognizeChar()
+        candidates = self.recognizeChar(candidates)
 
         # format and display license plate
-        license_plate_number = self.format()
+        license_plate_number = self.format(candidates)
 
         return license_plate_number
 
     def segmentation(self, LpRegion):
-        # apply thresh to extracted licences plate
+        # apply thresh to extracted licences plate 
         V = cv2.split(cv2.cvtColor(LpRegion, cv2.COLOR_BGR2HSV))[2]
 
         # adaptive threshold
@@ -60,6 +57,9 @@ class LicensePlateRecognizer(object):
 
         # connected components analysis
         labels = measure.label(thresh, connectivity=2, background=0)
+
+        # Store value
+        candidates = []
 
         # loop over the unique components
         for label in np.unique(labels):
@@ -89,32 +89,36 @@ class LicensePlateRecognizer(object):
                     square_candidate = convert2Square(candidate)
                     square_candidate = cv2.resize(square_candidate, (28, 28), cv2.INTER_AREA)
                     square_candidate = square_candidate.reshape((28, 28, 1))
-                    self.candidates.append((square_candidate, (y, x)))
+                    candidates.append((square_candidate, (y, x)))
+                    
+        return candidates
 
-    def recognizeChar(self):
+    def recognizeChar(self, candidates):
         characters = []
         coordinates = []
 
-        for char, coordinate in self.candidates:
+        for char, coordinate in candidates:
             characters.append(char)
             coordinates.append(coordinate)
 
-        characters = np.array(characters)
+        characters = np.array(characters, dtype=float)
         result = self.recogChar.predict_on_batch(characters)
         result_idx = np.argmax(result, axis=1)
 
-        self.candidates = []
+        candidates = []
         for i in range(len(result_idx)):
             if result_idx[i] == 31:    # if is background or noise, ignore it
                 continue
-            self.candidates.append((ALPHA_DICT[result_idx[i]], coordinates[i]))
+            candidates.append((ALPHA_DICT[result_idx[i]], coordinates[i]))
+        
+        return candidates
 
-    def format(self):
+    def format(self, candidates):
         first_line = []
         second_line = []
 
-        for candidate, coordinate in self.candidates:
-            if self.candidates[0][1][0] + 40 > coordinate[0]:
+        for candidate, coordinate in candidates:
+            if candidates[0][1][0] + 40 > coordinate[0]:
                 first_line.append((candidate, coordinate[1]))
             else:
                 second_line.append((candidate, coordinate[1]))
