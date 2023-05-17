@@ -11,13 +11,13 @@ from src.nckh2023 import Model
 ap = argparse.ArgumentParser()
 ap.add_argument("--source", required = True,
 	help = "Path to the source to be used")
-ap.add_argument("--model", type=str, default='yolov8n2-nckh2023.pt',
+ap.add_argument("--model", type=str, default='yolov8n3-nckh2023.pt',
 	help = "Select Model")
 ap.add_argument("--log", type=int, default=0,
 	help = "Write log")
 ap.add_argument("--show", type=int, default=1,
 	help = "Show visualized image")
-ap.add_argument("--conf", type=float, default=0.15,
+ap.add_argument("--conf", type=float, default=0.5,
 help = "Confidence score")
 ap.add_argument("--iou", type=float, default=0.5,
 help = "Confidence score")
@@ -44,7 +44,7 @@ elif image is None:
         quit()
 
 # Define model
-model = Model(f"models/{args['model']}", conf, iou, write_log, show_result)
+model = Model(f"models/{args['model']}", 1280, conf, iou, write_log, show_result)
 
 if image is not None:
     # Infer image

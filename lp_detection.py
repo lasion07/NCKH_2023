@@ -1,108 +1,77 @@
-import os
-import time
-import argparse
-import cv2 as cv
-from src.lp_recognition import LicensePlateRecognizer
-from src.nckh2023 import has_helmet, has_license_plate
-from ultralytics import YOLO
+import sys, os
+import keras
+import cv2
+import traceback
+
+from src.keras_utils 			import load_model
+from glob 						import glob
+from os.path 					import splitext, basename
+from src.utils 					import im2single
+from src.keras_utils 			import load_model, detect_lp
+from src.label 					import Shape, writeShapes
 
 
-# construct the argument parser and parse the arguments
-ap = argparse.ArgumentParser()
-ap.add_argument("--source", required = True,
-	help = "Path to the source to be used")
-ap.add_argument("--model", type=str, default='yolov8n2-nckh2023.pt',
-	help = "Select Model")
-ap.add_argument("--log", type=int, default=1,
-	help = "Write log")
-ap.add_argument("--show", type=int, default=1,
-	help = "Show visualized image")
-ap.add_argument("--conf", type=float, default=0.5,
-help = "Confidence score")
-ap.add_argument("--iou", type=float, default=0.5,
-help = "Confidence score")
-ap.add_argument("--slt", type=float, default=0.3,
-help = "Stop line threshold")
-ap.add_argument("--fontscale", type=float, default=1,
-help = "Font size")
-args = vars(ap.parse_args())
+def adjust_pts(pts,lroi):
+	return pts*lroi.wh().reshape((2,1)) + lroi.tl().reshape((2,1))
 
-model = YOLO(f"models/{args['model']}") # Select YOLO model
-recognizer = LicensePlateRecognizer()
-src = str(args["source"]) # Path
 
-# Predictor configs  
-conf = args['conf']
-iou = args['iou']
+class LicensePlateDetector:
+  def __init__(self, lp_threshold=.5, wpod_net_path = "/weights/lp-detector/wpod-net_update1.h5"):
+    self.lp_threshold = lp_threshold
 
-# Stop line
-stop_line_threshold = args['slt']
+    self.wpod_net = None
+    self.load_model_wpod(wpod_net_path)
+    
+  def load_model_wpod(self, wpod_net_path):
+    try:
+      self.wpod_net = load_model(wpod_net_path)
+    except:
+      print('Can not load wpod net')
 
-# font
-font = cv.FONT_HERSHEY_SIMPLEX
+  def detect(self, image):
+    try:
+      # print('Searching for license plates using WPOD-NET')
+      # print('\t Processing')
 
-# fontScale
-fontScale = args['fontscale']
+      Ivehicle = image
 
-# Color (BGR)
-WHITE = (255, 255, 255)
-RED = (0, 0, 255)
-GREEN = (0, 255, 0)
-BLUE = (255, 0, 0)
-LIGHT_BLUE = (238, 129, 49)
-YELLOW = (0, 255, 255)
+      ratio = float(max(Ivehicle.shape[:2]))/min(Ivehicle.shape[:2])
+      side  = int(ratio*288.)
+      bound_dim = min(side + (side%(2**4)),608)
+      # print("\t\tBound dim: %d, ratio: %f" % (bound_dim,ratio))
 
-# Visualization settings
-unidentified_count = 0
-thickness = 2
-radius = 10
+      Llp,LlpImgs,_ = detect_lp(self.wpod_net,im2single(Ivehicle),bound_dim,2**4,(90,80),self.lp_threshold)
 
-img = cv.imread(src)
+      if len(LlpImgs):
+        Ilp = LlpImgs[0]
+        Ilp = cv2.cvtColor(Ilp, cv2.COLOR_BGR2GRAY)
+        Ilp = cv2.cvtColor(Ilp, cv2.COLOR_GRAY2BGR)
 
-# # Show result
-# cv.imshow('Result', img)
+        s = Shape(Llp[0].pts)
 
-results = model.predict(source=img, conf=conf, iou=iou, stream=True, save=False, show=False)
- 
-for result in results:
-    boxes = result.boxes
+        # cv2.imwrite('%s_lp.png' % (bname),Ilp*255.)
+        # writeShapes('%s_lp.txt' % (bname),[s])
 
-    # Put objects into lists
-    for box in result.boxes:
-        if int(box.cls) == 1:
-            # Get location
-            x0_p = int(box.xyxy[0][0].item())
-            y0_p = int(box.xyxy[0][1].item())
-            x1_p = int(box.xyxy[0][2].item())
-            y1_p = int(box.xyxy[0][3].item())
+        return Ilp*255., [s]
 
-            # Crop image
-            license_plate_image = img[y0_p-10:y1_p+10, x0_p-10:x1_p+10]
+    except:
+      traceback.print_exc()
+      return None, None
 
-            license_plate_number = f'Unidentified_{unidentified_count}'
 
-            # Recognize image
-            start_time = time.time()
-            try:
-                license_plate_number = recognizer.predict(license_plate_image)
-            except:
-                print("Can not recognize this license plate")
-                unidentified_count += 1
-            end_time = time.time()
 
-            print(f'Detected license plate "{license_plate_number}" after {(end_time - start_time)*1000} ms')
+if __name__ == '__main__':
 
-            # Visualize
-            cv.putText(img, f'{license_plate_number}', (x0_p, y0_p - 5), font, fontScale, GREEN, thickness, cv.LINE_AA)
-            cv.rectangle(img, (x0_p, y0_p), (x1_p, y1_p), GREEN, thickness)
-            cv.rectangle(img, (int(img.shape[1] * .1), int(img.shape[0] * .3)), (int(img.shape[1] * .9), int(img.shape[0] * .9)), GREEN, thickness)
+  detector = LicensePlateDetector(.5, "weights/lp-detector/wpod-net_update1.h5")
 
-cv.imshow('Result', img)
+  img = cv2.imread('/Users/lasion/Library/CloudStorage/GoogleDrive-lxytb07@gmail.com/My Drive/NCKH/NCKH_2023/data/GreenParking/0000_06886_b.jpg')
+  lp_image, lp_labels = detector.detect(img)
 
-# Save result
-path = f'data/lp_recognized/result_{len(os.listdir("data/lp_recognized"))}.jpg'
-cv.imwrite(path, img)
-print("Saved result at", path)
+  if lp_image is not None:
+    cv2.imwrite('lp_img.jpg', lp_image)
+    writeShapes('lp_lb.txt', lp_labels)
+    print('Saved result')
 
-cv.waitKey(2000)
-cv.destroyAllWindows()
+  sys.exit(0)
+
+

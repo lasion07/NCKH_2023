@@ -4,7 +4,8 @@ import time
 import json
 from ultralytics import YOLO
 
-from src.lp_recognition import LicensePlateRecognizer
+from lp_recognition import LicensePlateRecognizer
+from lp_detection import LicensePlateDetector
 
 
 
@@ -58,10 +59,12 @@ radius = 10
 cnt = 0
 
 class Model:
-    def __init__(self, detector, conf, iou, write_log, show_result):
+    def __init__(self, detector, imgsz, conf, iou, write_log, show_result):
         self.detector = YOLO(detector)
-        self.recognizer = LicensePlateRecognizer()
+        self.lp_detector = LicensePlateDetector(.5, "weights/lp-detector/wpod-net_update1.h5")
+        self.lp_recognizer = LicensePlateRecognizer()
 
+        self.imgsz = imgsz
         self.conf = conf
         self.iou = iou
 
@@ -87,7 +90,7 @@ class Model:
             self.log = open(f"logs/{log_start_time}/log_{log_start_time}.json", mode='a')
 
     def infer(self, frame):
-        results = self.detector.predict(source=frame, conf=self.conf, iou=self.iou, stream=True, save=False, show=True)
+        results = self.detector.predict(source=frame, imgsz=self.imgsz, conf=self.conf, iou=self.iou, stream=True, save=False, show=False)
     
         for result in results:
             boxes = result.boxes
@@ -98,8 +101,6 @@ class Model:
             mwoh = [] # Motorcyclists without helmet
             temp = [] # Temporary motorcyclists storing
             detection_zone_xyxy = astype_int([frame.shape[1] * self.detection_zone_threshold[0], frame.shape[0] * self.detection_zone_threshold[1], frame.shape[1] * self.detection_zone_threshold[2], frame.shape[0] * self.detection_zone_threshold[3]])
-
-            unidentified_count = 0
 
             # Put objects into lists
             for box in result.boxes:
@@ -156,10 +157,7 @@ class Model:
                 for license_plate in P:
                     xc_p, yc_p, w_p, h_p = license_plate.xywh[0]
 
-                    # if license_plate.conf < 0.5 or w_p < 90 or h_p < 80:
-                    #     continue
-
-                    # Recognize license plate
+                    # Recognize license plate using YOLO and WPOT
                     if has_license_plate(x0_m, x1_m, yc_m, y1_m, xc_p, yc_p):
                         x0_p = int(license_plate.xyxy[0][0].item())
                         y0_p = int(license_plate.xyxy[0][1].item())
@@ -167,19 +165,24 @@ class Model:
                         y1_p = int(license_plate.xyxy[0][3].item())
 
                         # Crop image
-                        license_plate_image = frame[y0_p-10:y1_p+10, x0_p-10:x1_p+10]
+                        # license_plate_image = frame[y0_p:y1_p, x0_p:x1_p]
 
-                        license_plate_number = f'Unidentified_{unidentified_count}'
+                        license_plate_number = 'Unrecognized'
 
-                        # Recognize image  
-                        try:
-                            start_time = time.time()
-                            # license_plate_number = self.recognizer.predict(license_plate_image)
-                            end_time = time.time()
-                            print(f'Detected license plate "{license_plate_number}" after {(end_time - start_time)*1000} ms')
-                        except:
-                            print("Can not recognize this license plate")
-                            unidentified_count += 1
+                        if w_p >= 81 and h_p >= 72:
+                            try:
+                                # Detect license plate
+                                # lp_image = license_plate_image
+                                lp_image, lp_labels = self.lp_detector.detect(frame[int(yc_m):int(y1_m), int(x0_m):int(x1_m)])
+                                cv.imwrite('result.jpg', lp_image)
+
+                                # Recognize license plate
+                                start_time = time.time()
+                                license_plate_number = self.lp_recognizer.predict(lp_image)
+                                end_time = time.time()
+                                print(f'Detected license plate "{license_plate_number}" after {(end_time - start_time)*1000} ms')
+                            except:
+                                print("Can not recognize this license plate")
 
                         if self.write_log:
                             # Save information
@@ -210,7 +213,7 @@ class Model:
                 if self.show_result:
                     cv.putText(frame, "With helmet", (x0, y0 - 5), font, font_scale, GREEN, thickness, cv.LINE_AA)
                     cv.rectangle(frame, (x0, y0), (x1, y1), GREEN, thickness)
-                    cv.circle(frame, (xc, yc), radius, YELLOW, -1)
+                    # cv.circle(frame, (xc, yc), radius, YELLOW, -1)
                     
             ## Draw bounding box of motorcyclists without helmet
             for motorcyclist in mwoh:
