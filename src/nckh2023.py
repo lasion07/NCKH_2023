@@ -184,13 +184,13 @@ class Model:
                             except:
                                 print("Can not recognize this license plate")
 
-                        if self.write_log:
-                            # Save information
-                            motorcyclist_image = frame[int(y0_m):int(y1_m), int(x0_m):int(x1_m)]
-                            motorcyclist_image_path = f'logs/{self.log_start_time}/{license_plate_number}.jpg'
-                            cv.imwrite(motorcyclist_image_path, motorcyclist_image)
-                            information = {"license plate": license_plate_number, "image": motorcyclist_image_path, "detection confidence": float(license_plate.conf)}
-                            json.dump(information, self.log)
+                        # if self.write_log:
+                        #     # Save information
+                        #     motorcyclist_image = frame[int(y0_m):int(y1_m), int(x0_m):int(x1_m)]
+                        #     motorcyclist_image_path = f'logs/{self.log_start_time}/{license_plate_number}.jpg'
+                        #     cv.imwrite(motorcyclist_image_path, motorcyclist_image)
+                        #     information = {"license plate": license_plate_number, "image": motorcyclist_image_path, "detection confidence": float(license_plate.conf)}
+                        #     json.dump(information, self.log)
 
                         if self.show_result:
                             # Visualize License plate detection
