@@ -75,7 +75,7 @@ for result in results:
             y1_p = int(box.xyxy[0][3].item())
 
             # Crop image
-            license_plate_image = img[y0_p:y1_p, x0_p:x1_p]
+            license_plate_image = img[y0_p-50:y1_p+50, x0_p-50:x1_p+50]
 
             # license_plate_image_2 = cv.imread(f'/content/alpr-unconstrained/run/{name}_lp.png')
 

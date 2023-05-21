@@ -1,7 +1,7 @@
 ultralytics
 opencv-contrib-python>=4.2.0.32
-numpy==1.21.2
-# tensorflow
+numpy
+tensorflow
 imutils==0.5.4
 scikit-image>=0.18.1
 scikit-learn>=0.24.1

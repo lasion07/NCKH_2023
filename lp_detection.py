@@ -40,12 +40,12 @@ class LicensePlateDetector:
       bound_dim = min(side + (side%(2**4)),608)
       # print("\t\tBound dim: %d, ratio: %f" % (bound_dim,ratio))
 
-      Llp,LlpImgs,_ = detect_lp(self.wpod_net,im2single(Ivehicle),bound_dim,2**4,(90,80),self.lp_threshold)
+      Llp,LlpImgs,_ = detect_lp(self.wpod_net,im2single(Ivehicle),bound_dim,2**4,(120,100),self.lp_threshold)
 
       if len(LlpImgs):
         Ilp = LlpImgs[0]
-        Ilp = cv2.cvtColor(Ilp, cv2.COLOR_BGR2GRAY)
-        Ilp = cv2.cvtColor(Ilp, cv2.COLOR_GRAY2BGR)
+        # Ilp = cv2.cvtColor(Ilp, cv2.COLOR_BGR2GRAY)
+        # Ilp = cv2.cvtColor(Ilp, cv2.COLOR_GRAY2BGR)
 
         s = Shape(Llp[0].pts)
 
@@ -56,7 +56,8 @@ class LicensePlateDetector:
 
     except:
       traceback.print_exc()
-      return None, None
+    
+    return None, None
 
 
 

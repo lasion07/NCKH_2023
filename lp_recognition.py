@@ -22,16 +22,6 @@ class LicensePlateRecognizer(object):
 
 
     def predict(self, image):
-        # convert (x_top, y_left, width, height) to coordinate(top left, top right, bottom left, bottom right)
-        # pts = order_points([10, 10, len(image[0]) - 10, len(image) - 10])
-
-        # crop number plate used by bird's eyes view transformation
-        # image = perspective.four_point_transform(image, pts)
-        
-        # resized_image = cv2.resize(image, (90, 80))
-
-        # cv2.imwrite('result.jpg', resized_image)
-        
         # segmentation
         candidates = self.segmentation(image)
 

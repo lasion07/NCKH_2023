@@ -2,6 +2,7 @@ import os
 import cv2 as cv
 import time
 import json
+import numpy as np
 from ultralytics import YOLO
 
 from lp_recognition import LicensePlateRecognizer
@@ -39,7 +40,18 @@ def in_detection_zone(target_xy, zone_xyxy):
         input: [int, int], [int, int, int, int]
         output: bool
     """
-    return target_xy[0] > zone_xyxy[0] and target_xy[1] > zone_xyxy[1] and target_xy[0] < zone_xyxy[2] and target_xy[1] < zone_xyxy[3]
+    return target_xy[0] >= zone_xyxy[0] and target_xy[1] >= zone_xyxy[1] and target_xy[0] <= zone_xyxy[2] and target_xy[1] <= zone_xyxy[3]
+
+def put_text(img, text, loc, font, font_scale, color, thickness, lineType):
+    (text_offset_x, text_offset_y) = loc
+    # set the rectangle background to white
+    WHITE = (255, 255, 255)
+    # get the width and height of the text box
+    (text_width, text_height) = cv.getTextSize(text, font, fontScale=font_scale, thickness=thickness)[0]
+    # make the coords of the box with a small padding of two pixels
+    box_coords = ((text_offset_x, text_offset_y), (text_offset_x + text_width + 2, text_offset_y - text_height - 2))
+    cv.rectangle(img, box_coords[0], box_coords[1], color, cv.FILLED)
+    cv.putText(img, text, (text_offset_x, text_offset_y), font, fontScale=font_scale, color=WHITE, thickness=thickness, lineType=lineType)
 
 # font
 font = cv.FONT_HERSHEY_SIMPLEX
@@ -58,6 +70,7 @@ thickness = 2
 radius = 10
 cnt = 0
 
+
 class Model:
     def __init__(self, detector, imgsz, conf, iou, write_log, show_result):
         self.detector = YOLO(detector)
@@ -69,7 +82,7 @@ class Model:
         self.iou = iou
 
         # Detection_zone
-        self.detection_zone_threshold = [.1, .3, .9, .9]
+        self.detection_zone_threshold = [.1, .3, .6, .9]
 
         self.write_log = write_log
         self.log_start_time = None
@@ -90,6 +103,10 @@ class Model:
             self.log = open(f"logs/{log_start_time}/log_{log_start_time}.json", mode='a')
 
     def infer(self, frame):
+        # Resize the frame
+        original_frame = frame.copy()
+        frame = cv.resize(frame, (1280, 720))
+
         results = self.detector.predict(source=frame, imgsz=self.imgsz, conf=self.conf, iou=self.iou, stream=True, save=False, show=False)
     
         for result in results:
@@ -109,22 +126,27 @@ class Model:
                     1: license_plate - blue
                     2: motorcyclist - red
                 """
-                xc = int(box.xywh[0][0].item())
-                yc = int(box.xywh[0][1].item())
-
                 if int(box.cls) == 0:
                     H.append(box)
                 elif int(box.cls) == 1:
                     P.append(box)
                 else:
-                    if box.conf < 0.5 or not in_detection_zone([xc, yc], detection_zone_xyxy):
-                        continue                
+                    if box.conf < 0.5:
+                        continue
                     M.append(box)
 
             # Check motorcyclists with helmet
             for motorcyclist in M:
                 x0_m, y0_m, x1_m, y1_m = motorcyclist.xyxy[0]
                 xc_m, yc_m, w_m, h_m = motorcyclist.xywh[0]
+
+                # if yc_m < frame.shape[0] * .3:
+                #     mwh.append(motorcyclist)
+                #     continue
+
+                if not in_detection_zone([xc_m, yc_m], detection_zone_xyxy):
+                    mwh.append(motorcyclist)
+                    continue
 
                 for helmet in H:
                     xc_h, yc_h, w_h, h_h = helmet.xywh[0]
@@ -139,10 +161,8 @@ class Model:
 
                         if self.show_result:
                             # Visualize Helmet detection
-                            # print(f'\n\n{helmet.conf}\n\n')
-                            cv.putText(frame, "Helmet", (x0_h, y0_h - 5), font, font_scale, BLUE, thickness, cv.LINE_AA)
+                            put_text(frame, "helmet", (x0_h, y0_h - 5), font, font_scale, BLUE, thickness, cv.LINE_AA)
                             cv.rectangle(frame, (x0_h, y0_h), (x1_h, y1_h), BLUE, thickness)
-                        break
             
             # Check motorcyclists without helmet
             for motorcyclist in M:
@@ -165,16 +185,21 @@ class Model:
                         y1_p = int(license_plate.xyxy[0][3].item())
 
                         # Crop image
+                        # y_e = 50s
+                        # x_e = 50
+                        # license_plate_image = frame[max(y0_p - y_e, 0):min(y1_p + y_e, frame.shape[0]), max(x0_p - x_e, 0):min(x1_p + x_e, frame.shape[1])]
+                        license_plate_image = frame[int(yc_m):int(y1_m), int(x0_m):int(x1_m)]
+                        # license_plate_image = original_frame[int(yc_m*3):int(y1_m*3), int(x0_m*3):int(x1_m*3)]
                         # license_plate_image = frame[y0_p:y1_p, x0_p:x1_p]
 
-                        license_plate_number = 'Unrecognized'
+                        cv.imwrite('result.jpg', license_plate_image)
+                        license_plate_number = 'license_plate'
 
-                        if w_p >= 81 and h_p >= 72:
+                        if w_p >= 45 and h_p >= 40:
                             try:
                                 # Detect license plate
-                                # lp_image = license_plate_image
-                                lp_image, lp_labels = self.lp_detector.detect(frame[int(yc_m):int(y1_m), int(x0_m):int(x1_m)])
-                                cv.imwrite('result.jpg', lp_image)
+                                lp_image, lp_labels = self.lp_detector.detect(license_plate_image)
+                                cv.imwrite('lp.jpg', lp_image)
 
                                 # Recognize license plate
                                 start_time = time.time()
@@ -194,12 +219,13 @@ class Model:
 
                         if self.show_result:
                             # Visualize License plate detection
-                            cv.putText(frame, f'{license_plate_number}', (x0_p, y0_p - 5), font, font_scale, LIGHT_BLUE, thickness, cv.LINE_AA)
+                            put_text(frame, f'{license_plate_number}', (x0_p, y0_p - 5), font, font_scale, LIGHT_BLUE, thickness, cv.LINE_AA)
                             cv.rectangle(frame, (x0_p, y0_p), (x1_p, y1_p), LIGHT_BLUE, thickness)
                         break
             
             # Visualize
             ## Draw detection zone
+            # cv.line(frame, (0, int(720 * .3)), (1280, int(720 * .3)), YELLOW, thickness)
             cv.rectangle(frame, (detection_zone_xyxy[0], detection_zone_xyxy[1]), (detection_zone_xyxy[2], detection_zone_xyxy[3]), WHITE, thickness, cv.LINE_8)
             ## Draw bounding box of motorcyclists with helmet
             for motorcyclist in mwh:
@@ -211,9 +237,9 @@ class Model:
                 yc = int(motorcyclist.xywh[0][1].item())
                 
                 if self.show_result:
-                    cv.putText(frame, "With helmet", (x0, y0 - 5), font, font_scale, GREEN, thickness, cv.LINE_AA)
+                    put_text(frame, "motorcyclist", (x0, y0 - 5), font, font_scale, GREEN, thickness, cv.LINE_AA)
                     cv.rectangle(frame, (x0, y0), (x1, y1), GREEN, thickness)
-                    # cv.circle(frame, (xc, yc), radius, YELLOW, -1)
+                    cv.circle(frame, (xc, yc), radius, YELLOW, -1)
                     
             ## Draw bounding box of motorcyclists without helmet
             for motorcyclist in mwoh:
@@ -225,7 +251,7 @@ class Model:
                 yc = int(motorcyclist.xywh[0][1].item())
 
                 if self.show_result:
-                    cv.putText(frame, "Without helmet", (x0, y0 - 5), font, font_scale, RED, thickness, cv.LINE_AA)
+                    put_text(frame, "without_helmet", (x0, y0 - 5), font, font_scale, RED, thickness, cv.LINE_AA)
                     cv.rectangle(frame, (x0, y0), (x1, y1), RED, thickness)
                     cv.circle(frame, (xc, yc), radius, YELLOW, -1)
         

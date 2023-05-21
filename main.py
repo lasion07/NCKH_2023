@@ -11,7 +11,7 @@ from src.nckh2023 import Model
 ap = argparse.ArgumentParser()
 ap.add_argument("--source", required = True,
 	help = "Path to the source to be used")
-ap.add_argument("--model", type=str, default='yolov8n3-nckh2023.pt',
+ap.add_argument("--model", type=str, default='yolov8m2-nckh2023.pt',
 	help = "Select Model")
 ap.add_argument("--log", type=int, default=0,
 	help = "Write log")
@@ -53,6 +53,7 @@ if image is not None:
     # Display the resulting frame
     if show_result:
         cv.imshow('frame', result)
+        cv.imwrite('result.jpg', result)
 
     cv.waitKey(20000)
 else:
@@ -70,6 +71,7 @@ else:
         # Display the resulting frame
         if show_result:
             cv.imshow('frame', frame)
+            # cv.imwrite('result.jpg', frame)
 
         if cv.waitKey(20) == ord('q'):
             break
