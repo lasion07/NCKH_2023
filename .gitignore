@@ -5,3 +5,4 @@ cv.py
 # ignore ALL files in ANY directory named data
 data/
 logs/
+runs/
