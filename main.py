@@ -17,7 +17,7 @@ ap.add_argument("--log", type=int, default=0,
 	help = "Write log")
 ap.add_argument("--show", type=int, default=1,
 	help = "Show visualized image")
-ap.add_argument("--conf", type=float, default=0.5,
+ap.add_argument("--conf", type=float, default=0.8,
 help = "Confidence score")
 ap.add_argument("--iou", type=float, default=0.5,
 help = "Confidence score")

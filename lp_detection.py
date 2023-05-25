@@ -16,7 +16,7 @@ def adjust_pts(pts,lroi):
 
 
 class LicensePlateDetector:
-  def __init__(self, lp_threshold=.5, wpod_net_path = "/weights/lp-detector/wpod-net_update1.h5"):
+  def __init__(self, lp_threshold=.5, wpod_net_path = "weights/lp-detector/wpod-net_update1.h5"):
     self.lp_threshold = lp_threshold
 
     self.wpod_net = None

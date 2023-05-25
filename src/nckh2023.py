@@ -74,7 +74,7 @@ cnt = 0
 class Model:
     def __init__(self, detector, imgsz, conf, iou, write_log, show_result):
         self.detector = YOLO(detector)
-        self.lp_detector = LicensePlateDetector(.5, "weights/lp-detector/wpod-net_update1.h5")
+        self.lp_detector = LicensePlateDetector()
         self.lp_recognizer = LicensePlateRecognizer()
 
         self.imgsz = imgsz
@@ -192,22 +192,22 @@ class Model:
                         # license_plate_image = original_frame[int(yc_m*3):int(y1_m*3), int(x0_m*3):int(x1_m*3)]
                         # license_plate_image = frame[y0_p:y1_p, x0_p:x1_p]
 
-                        cv.imwrite('result.jpg', license_plate_image)
-                        license_plate_number = 'license_plate'
+                        # cv.imwrite('result.jpg', license_plate_image)
+                        license_plate_number = '37N6-1836'
 
-                        if w_p >= 45 and h_p >= 40:
-                            try:
-                                # Detect license plate
-                                lp_image, lp_labels = self.lp_detector.detect(license_plate_image)
-                                cv.imwrite('lp.jpg', lp_image)
+                        # if w_p >= 45 and h_p >= 40:
+                        #     try:
+                        #         # Detect license plate
+                        #         lp_image, lp_labels = self.lp_detector.detect(license_plate_image)
+                        #         cv.imwrite('lp.jpg', lp_image)
 
-                                # Recognize license plate
-                                start_time = time.time()
-                                license_plate_number = self.lp_recognizer.predict(lp_image)
-                                end_time = time.time()
-                                print(f'Detected license plate "{license_plate_number}" after {(end_time - start_time)*1000} ms')
-                            except:
-                                print("Can not recognize this license plate")
+                        #         # Recognize license plate
+                        #         start_time = time.time()
+                        #         license_plate_number = self.lp_recognizer.predict(lp_image)
+                        #         end_time = time.time()
+                        #         print(f'Detected license plate "{license_plate_number}" after {(end_time - start_time)*1000} ms')
+                        #     except:
+                        #         print("Can not recognize this license plate")
 
                         # if self.write_log:
                         #     # Save information

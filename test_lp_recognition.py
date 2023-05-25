@@ -1,23 +1,26 @@
 import os
-import time
 import argparse
+import csv
 import cv2 as cv
+import time
+import json
+import numpy as np
+
 from lp_recognition import LicensePlateRecognizer
-from src.nckh2023 import has_helmet, has_license_plate
-from ultralytics import YOLO
+from lp_detection import LicensePlateDetector
 
 
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
-ap.add_argument("--name", required = True,
-	help = "Path to the source to be used")
-ap.add_argument("--model", type=str, default='yolov8n2-nckh2023.pt',
+ap.add_argument("--csv", required = True,
+	help = "Path to the csv to be used")
+ap.add_argument("--model", type=str, default='yolov8m-nckh2023.pt',
 	help = "Select Model")
 ap.add_argument("--log", type=int, default=1,
 	help = "Write log")
 ap.add_argument("--show", type=int, default=1,
 	help = "Show visualized image")
-ap.add_argument("--conf", type=float, default=0.5,
+ap.add_argument("--conf", type=float, default=0.15,
 help = "Confidence score")
 ap.add_argument("--iou", type=float, default=0.5,
 help = "Confidence score")
@@ -27,23 +30,32 @@ ap.add_argument("--fontscale", type=float, default=1,
 help = "Font size")
 args = vars(ap.parse_args())
 
-model = YOLO(f"models/{args['model']}") # Select YOLO model
-recognizer = LicensePlateRecognizer()
-name = str(args['name'])
-src = 'data/GreenParking/' + name + '.jpg' # Path
+def put_text(img, text, loc, font, font_scale, color, thickness, lineType):
+    (text_offset_x, text_offset_y) = loc
+    # set the rectangle background to white
+    WHITE = (255, 255, 255)
+    # get the width and height of the text box
+    (text_width, text_height) = cv.getTextSize(text, font, fontScale=font_scale, thickness=thickness)[0]
+    # make the coords of the box with a small padding of two pixels
+    box_coords = ((text_offset_x, text_offset_y), (text_offset_x + text_width + 2, text_offset_y - text_height - 2))
+    cv.rectangle(img, box_coords[0], box_coords[1], color, cv.FILLED)
+    cv.putText(img, text, (text_offset_x, text_offset_y), font, fontScale=font_scale, color=WHITE, thickness=thickness, lineType=lineType)
+
+
+lp_detector = LicensePlateDetector()
+lp_recognizer = LicensePlateRecognizer()
+src = str(args['csv']) # Path
+root_folder = 'data/GreenParking'
 
 # Predictor configs  
 conf = args['conf']
 iou = args['iou']
 
-# Stop line
-stop_line_threshold = args['slt']
-
-# font
+# Font
 font = cv.FONT_HERSHEY_SIMPLEX
 
-# fontScale
-fontScale = args['fontscale']
+# Font scale
+font_scale = args['fontscale']
 
 # Color (BGR)
 WHITE = (255, 255, 255)
@@ -58,67 +70,63 @@ unidentified_count = 0
 thickness = 2
 radius = 10
 
-img = cv.imread(src)
+# Counter
+true_cnt = 0
+false_cnt = 0
 
-results = model.predict(source=img, conf=conf, iou=iou, stream=True, save=False, show=False)
- 
-for result in results:
-    boxes = result.boxes
+with open(src, mode='r') as f:
+    reader = csv.reader(f)
 
-    # Put objects into lists
-    for box in result.boxes:
-        if int(box.cls) == 1:
-            # Get location
-            x0_p = int(box.xyxy[0][0].item())
-            y0_p = int(box.xyxy[0][1].item())
-            x1_p = int(box.xyxy[0][2].item())
-            y1_p = int(box.xyxy[0][3].item())
+    # for file in sorted(os.listdir(root_folder)):
+    #     print(file, ',', sep='')
+    # quit()
 
-            # Crop image
-            license_plate_image = img[y0_p-50:y1_p+50, x0_p-50:x1_p+50]
+    for filename, label in reader:
+        path = os.path.join(root_folder, filename)
+        print(f'Read file {filename}')
 
-            # license_plate_image_2 = cv.imread(f'/content/alpr-unconstrained/run/{name}_lp.png')
+        img = cv.imread(path)
+        
+        reg_result = False
 
-            license_plate_number = f'Unidentified_{unidentified_count}'
+        # Crop image
+        license_plate_image = img
 
-            # license_plate_number_2 = f'Unidentified_{unidentified_count}'
+        # license_plate_image = img[y0_p:y1_p, x0_p:x1_p]
 
-            # Recognize image
+        license_plate_number = f'license_plate'
+
+        try:
+            # Detect license plate
+            lp_image, lp_labels = lp_detector.detect(license_plate_image)
+            cv.imwrite('lp.jpg', lp_image)
+
+            # Recognize license plate
             start_time = time.time()
-            # try:
-            license_plate_number = recognizer.predict(license_plate_image)
-            # except:
-            # print("Can not recognize this license plate")
-            unidentified_count += 1
+            license_plate_number = lp_recognizer.predict(lp_image)
             end_time = time.time()
+            print(f'Detected license plate "{license_plate_number}" after {(end_time - start_time)*1000} ms')
+        except:
+            print("Can not recognize this license plate")
 
-            # Recognize image
-            # start_time_2 = time.time()
-            # try:
-            #     license_plate_number_2 = recognizer.predict(license_plate_image_2)
-            # except:
-            #     print("Can not recognize this license plate")
-            #     unidentified_count += 1
-            # end_time_2 = time.time()
+        if license_plate_number == label:
+            reg_result = True
+            true_cnt += 1
+        else:
+            false_cnt += 1
 
-            print(f'Before: Detected license plate "{license_plate_number}" after {(end_time - start_time)*1000} ms')
-            # print(f'After: Detected license plate "{license_plate_number_2}" after {(end_time_2 - start_time_2)*1000} ms')
+        # Visualize License plate detection
+        put_text(img, f'{license_plate_number}', (0, img.shape[0] - 50), font, font_scale, LIGHT_BLUE, thickness, cv.LINE_AA)
+        # cv.rectangle(img, (x0_p, y0_p), (x1_p, y1_p), LIGHT_BLUE, thickness)
 
-            cv.imwrite('lp.jpg', license_plate_image)
-            # cv.imwrite('/content/alpr-unconstrained/run/lp_2.jpg', license_plate_image_2)
+        # if not reg_result:
+        #     cv.imshow('Result', img)
+        #     cv.imwrite('result.jpg', img)
+        #     cv.waitKey(20000)
 
-            # Visualize
-            # cv.rectangle(img, (int(img.shape[1] * .1), int(img.shape[0] * .3)), (int(img.shape[1] * .9), int(img.shape[0] * .9)), WHITE, thickness)
-            cv.putText(img, f'{license_plate_number}', (x0_p - 50, y0_p - 5*6), font, fontScale, GREEN, thickness, cv.LINE_AA)
-            # cv.putText(img, f'After: {license_plate_number_2}', (x0_p - 50, y0_p - 5), font, fontScale, GREEN, thickness, cv.LINE_AA)
-            cv.rectangle(img, (x0_p, y0_p), (x1_p, y1_p), GREEN, thickness)
-            
-# cv.imshow('Result', img)
-
-# Save result
-# path = f'/content/alpr-unconstrained/run/result_{len(os.listdir("/content/alpr-unconstrained/run/"))}.jpg'
-cv.imwrite('result.jpg', img)
-print("Saved result")
-
-# cv.waitKey(2000)
-# cv.destroyAllWindows()
+total = true_cnt + false_cnt
+print(f'Total: {total}')
+print(f'True count: {true_cnt} / {true_cnt/total}')
+print(f'False count: {false_cnt} / {false_cnt/total}')
+        
+cv.destroyAllWindows()
