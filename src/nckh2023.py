@@ -107,7 +107,7 @@ class Model:
         original_frame = frame.copy()
         frame = cv.resize(frame, (1280, 720))
 
-        results = self.detector.predict(source=frame, imgsz=self.imgsz, conf=self.conf, iou=self.iou, stream=True, save=False, show=False)
+        results = self.detector.predict(source=frame, imgsz=self.imgsz, conf=self.conf, iou=self.iou, stream=True, save=False, show=True)
     
         for result in results:
             boxes = result.boxes
