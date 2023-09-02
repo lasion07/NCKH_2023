@@ -1,5 +1,9 @@
 # NCKH_2023 - NGHIÊN CỨU TÌM HIỂU HỆ THỐNG PHÁT HIỆN HÀNH VI KHÔNG ĐỘI MŨ BẢO HIỂM KHI THAM GIA GIAO THÔNG ỨNG DỤNG TRÍ TUỆ NHÂN TẠO
 
+**Kết quả**
+
+![alt text]([http://url/to/img.png](https://github.com/lasion07/NCKH_2023/blob/1336d0d01c5f8e3a26a6674292b9ee4ec3bdc455/result.jpg?raw=true))
+
 **Phương pháp được sử dụng:**
 
 * Nhận diện vật thể (YOLOv8)
