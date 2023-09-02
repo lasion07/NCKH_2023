@@ -1,6 +1,6 @@
 # NCKH_2023 - NGHIÊN CỨU TÌM HIỂU HỆ THỐNG PHÁT HIỆN HÀNH VI KHÔNG ĐỘI MŨ BẢO HIỂM KHI THAM GIA GIAO THÔNG ỨNG DỤNG TRÍ TUỆ NHÂN TẠO
 
-**Kết quả**
+## Kết quả
 
 ![alt text](https://github.com/lasion07/NCKH_2023/blob/a7fd0f0b8095a7da0610ea947058a4e53478b3c7/result.jpg)
 
