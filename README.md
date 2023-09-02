@@ -2,7 +2,7 @@
 
 **Kết quả**
 
-![alt text]([http://url/to/img.png](https://github.com/lasion07/NCKH_2023/blob/1336d0d01c5f8e3a26a6674292b9ee4ec3bdc455/result.jpg?raw=true))
+![alt text](https://github.com/lasion07/NCKH_2023/blob/a7fd0f0b8095a7da0610ea947058a4e53478b3c7/result.jpg)
 
 **Phương pháp được sử dụng:**
 
